@@ -45,7 +45,10 @@ class SimpleDiffusion():
 
         self.current_dist = np.array( self.initial_dist )
         self.cos_corr = [ np.dot(self.p_expected,self.current_dist)/np.linalg.norm(self.p_expected)/np.linalg.norm(self.current_dist) ]
-        self.jump_distances = []
+
+        self.record_jump_distance = record_jump_distance
+        if record_jump_distance:            
+            self.jump_distances = []
 
     def timestep(self):
 
@@ -61,10 +64,13 @@ class SimpleDiffusion():
             diffusion_to_neighbor = random.randint(k,size=current_walkers)
 
             for neigh in diffusion_to_neighbor:
-                distance = abs(neighbors[neigh]-node)
-                if distance > self.N_nodes/2.:
-                    distance = abs(distance-self.N_nodes)
-                self.jump_distances.append( distance )
+
+                if self.record_jump_distance:
+                    distance = abs(neighbors[neigh]-node)
+                    if distance > self.N_nodes/2.:
+                        distance = abs(distance-self.N_nodes)
+                    self.jump_distances.append( distance )
+
                 new_dist[neighbors[neigh]] += 1
 
         self.current_dist = new_dist
