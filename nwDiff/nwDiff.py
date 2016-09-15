@@ -9,7 +9,7 @@ import networkx as nx
 
 class SimpleDiffusion():
 
-    def __init__(self,G,N_walker=10000,initial_distribution=None,normed=True):
+    def __init__(self,G,N_walker=10000,initial_distribution=None,normed=True,record_jump_distance=False):
         
         self.N_walker = N_walker
 
@@ -45,6 +45,7 @@ class SimpleDiffusion():
 
         self.current_dist = np.array( self.initial_dist )
         self.cos_corr = [ np.dot(self.p_expected,self.current_dist)/np.linalg.norm(self.p_expected)/np.linalg.norm(self.current_dist) ]
+        self.jump_distances = []
 
     def timestep(self):
 
@@ -60,6 +61,10 @@ class SimpleDiffusion():
             diffusion_to_neighbor = random.randint(k,size=current_walkers)
 
             for neigh in diffusion_to_neighbor:
+                distance = abs(neighbors[neigh]-node)
+                if distance > self.N_nodes/2.:
+                    distance = abs(distance-self.N_nodes)
+                self.jump_distances.append( distance )
                 new_dist[neighbors[neigh]] += 1
 
         self.current_dist = new_dist
@@ -109,12 +114,12 @@ if __name__ == "__main__":
     L = 3
     N = B**L
     k = 10
-    xi = 0.2
+    xi = B
     p_ER = float(k)/(N-1)
     #G = nx.fast_gnp_random_graph(N,p_ER)
 
     #G = mhrn.fast_mhr_graph(B,L,k,xi)
-    G = mhrn.continuous_hierarchical_graph(B**L,k,np.log(xi)/np.log(B),redistribute_probability=True)
+    G = mhrn.continuous_hierarchical_graph(B**L,k,np.log(xi)/np.log(B),redistribute_probability=False)
 
     #G = nx.cycle_graph(N)
 
@@ -125,7 +130,7 @@ if __name__ == "__main__":
     diff = SimpleDiffusion(props.G)
 
     #dist,std,t,cos_corr = diff.simulate_till_equilibration(2e-2)
-    dist,std = diff.simulation(80)
+    dist,std = diff.simulation(100)
     cos_corr = np.array(diff.cos_corr)
 
     t = np.arange(len(std))
@@ -138,7 +143,7 @@ if __name__ == "__main__":
 
     print(std0,std_eq)
 
-    fig,ax = pl.subplots(2,2,figsize=(13,5))
+    fig,ax = pl.subplots(3,2,figsize=(13,13))
     ax = ax.flatten()
     ax[0].plot(t,std)
     ax[0].set_yscale("log")
@@ -148,6 +153,26 @@ if __name__ == "__main__":
     ax[0].plot(t,np.ones_like(t)*np.std(diff.k/diff.m*0.5))
     ax[3].plot(t,1-cos_corr)
     ax[3].set_yscale("log")
+
+    N_jumps = float(len(diff.jump_distances))
+    dist_h = Counter(diff.jump_distances)
+    dists = np.arange(1,diff.N_nodes/2)
+    vals = np.array([ dist_h[d]/N_jumps for d in dists ])
+    ax[4].plot(dists,vals,'.')
+    ax[4].set_xscale("log")
+    ax[4].set_yscale("log")
+
+
+    inds = np.nonzero(vals)[0]
+    p = np.polyfit(np.log(dists[inds]),np.log(vals[inds]),1)
+    mu = p[0]
+    a = np.exp(p[1])
+    print("mu =",mu)
+    print("a =",a)
+
+    ax[4].plot(dists,a * dists**mu,'--')
+    ax[4].plot(dists,a * dists**(-1+np.log(xi)/np.log(B)),'--')
+
 
 
     #fit ..
