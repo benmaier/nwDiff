@@ -42,6 +42,7 @@ class SimpleDiffusion():
 
         self.dist_time = [ self.initial_dist / float(self.norm) ]
         self.std_time = [ np.std(self.dist_time[-1]) ]
+        self.localization_time = [ np.dot(self.dist_time[-1],self.dist_time[-1]) ]
 
         self.current_dist = np.array( self.initial_dist )
         self.cos_corr = [ np.dot(self.p_expected,self.current_dist)/np.linalg.norm(self.p_expected)/np.linalg.norm(self.current_dist) ]
@@ -78,6 +79,7 @@ class SimpleDiffusion():
         new_dist_f = np.array(new_dist,dtype=np.float64) / self.norm
         self.dist_time.append( new_dist_f )
         self.std_time.append( np.std(new_dist_f) )
+        self.localization_time.append(np.dot(new_dist_f, new_dist_f))
         self.cos_corr.append( np.dot(self.p_expected,self.current_dist)/np.linalg.norm(self.p_expected)/np.linalg.norm(self.current_dist) )
 
     def simulation(self,tmax):
@@ -85,7 +87,7 @@ class SimpleDiffusion():
         for t in range(tmax):
             self.timestep()
 
-        return np.array(self.dist_time), np.array(self.std_time)
+        return np.array(self.dist_time), np.array(self.std_time), np.array(self.localization_time)
 
 
     def simulate_till_equilibration(self,eps=0.01):
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     L = 3
     N = B**L
     k = 10
-    xi = B
+    xi = 0.25
     p_ER = float(k)/(N-1)
     #G = nx.fast_gnp_random_graph(N,p_ER)
 
@@ -133,11 +135,14 @@ if __name__ == "__main__":
 
 
     #diff = SimpleDiffusion(props.G,initial_distribution="random")
-    diff = SimpleDiffusion(props.G)
+    diff = SimpleDiffusion(props.G,record_jump_distance=True)
 
     #dist,std,t,cos_corr = diff.simulate_till_equilibration(2e-2)
-    dist,std = diff.simulation(100)
+    dist,std,loc = diff.simulation(100)
     cos_corr = np.array(diff.cos_corr)
+
+    #loc = std
+    std = loc
 
     t = np.arange(len(std))
 
@@ -156,7 +161,7 @@ if __name__ == "__main__":
     ax[1].imshow(np.log(dist.T),interpolation='nearest',extent=(t.min(), t.max(), 0, diff.N_nodes-1))
     ax[2].plot(np.arange(diff.N_nodes),dist[-1,:])
     ax[2].plot(np.arange(diff.N_nodes),diff.k/diff.m*0.5)
-    ax[0].plot(t,np.ones_like(t)*np.std(diff.k/diff.m*0.5))
+    #ax[0].plot(t,np.ones_like(t)*np.std(diff.k/diff.m*0.5))
     ax[3].plot(t,1-cos_corr)
     ax[3].set_yscale("log")
 
@@ -189,7 +194,8 @@ if __name__ == "__main__":
             
     print(popt)
     fit_res = np.exp(func(t,*popt))
+    print(fit_res)
     ax[0].plot(t,fit_res,'r')
-    ax[0].plot(t,fit_res[-1] + (fit_res[0]-fit_res[-1]) * np.exp(-t*lambda_2))
+    ax[0].plot(t,fit_res[-1] + (fit_res[0]-fit_res[-1]) * np.exp(-t*lambda_2),'--')
 
     pl.show()
