@@ -154,24 +154,41 @@ if __name__ == "__main__":
 
     print(std0,std_eq)
 
-    fig,ax = pl.subplots(3,2,figsize=(13,13))
+    #fig,ax = pl.subplots(2,2,figsize=(13,9))
+    fig = pl.figure(figsize=(13,9))
+    ax0 = pl.subplot(221)
+    ax1 = pl.subplot(122)
+    ax2 = pl.subplot(223)
+    ax = np.array([ax0,ax1,ax2])
     ax = ax.flatten()
-    ax[0].plot(t,std)
+    ax[0].plot(t,std,label='simulation')
     ax[0].set_yscale("log")
-    ax[1].imshow(np.log(dist.T),interpolation='nearest',extent=(t.min(), t.max(), 0, diff.N_nodes-1))
-    ax[2].plot(np.arange(diff.N_nodes),dist[-1,:])
-    ax[2].plot(np.arange(diff.N_nodes),diff.k/diff.m*0.5)
-    #ax[0].plot(t,np.ones_like(t)*np.std(diff.k/diff.m*0.5))
-    ax[3].plot(t,1-cos_corr)
-    ax[3].set_yscale("log")
+    ax[0].set_title(r"$B=%d,L=%d,\langle k \rangle=%d,\xi=%4.2f$" % (B,L,k,xi))
+    ax[0].set_xlabel(r"time $t\times r$")
+    ax[0].set_ylabel(r"concentration fluctuation $\sqrt{\mathrm{Var}(c_i(t))}$")
 
+    ax[1].imshow(np.log(dist.T),interpolation='nearest',extent=(t.min(), t.max(), 0, diff.N_nodes-1),aspect='auto')
+    ax[1].set_title(r"Walker concentration")
+    ax[1].set_xlabel(r"time $t\times r$")
+    ax[1].set_ylabel(r"node index")
+
+    # plot distribution of walkers
+    #ax[2].plot(np.arange(diff.N_nodes),dist[-1,:])
+    #ax[2].plot(np.arange(diff.N_nodes),diff.k/diff.m*0.5)
+    #ax[0].plot(t,np.ones_like(t)*np.std(diff.k/diff.m*0.5))
+
+    # plot cosine correlation 
+    #ax[3].plot(t,1-cos_corr)
+    #ax[3].set_yscale("log")
+
+    # plot jump distribution
     N_jumps = float(len(diff.jump_distances))
     dist_h = Counter(diff.jump_distances)
     dists = np.arange(1,diff.N_nodes/2)
     vals = np.array([ dist_h[d]/N_jumps for d in dists ])
-    ax[4].plot(dists,vals,'.')
-    ax[4].set_xscale("log")
-    ax[4].set_yscale("log")
+    ax[2].plot(dists,vals,'.',label='simulation')
+    ax[2].set_xscale("log")
+    ax[2].set_yscale("log")
 
 
     inds = np.nonzero(vals)[0]
@@ -181,8 +198,17 @@ if __name__ == "__main__":
     print("mu =",mu)
     print("a =",a)
 
-    ax[4].plot(dists,a * dists**mu,'--')
-    ax[4].plot(dists,a * dists**(-1+np.log(xi)/np.log(B)),'--')
+    #ax[2].plot(dists,a * dists**mu,'--',label='$%4.2f|\Delta i|^{%4.2f}$' % (a,mu))
+    #ax[2].plot(dists,a * dists**-1,'--',label='$%4.2f|\Delta i|^{%4.2f}$' % (a,mu))
+    #ax[2].plot(dists,a * dists**(np.log(xi)/np.log(B)),'--')
+    popt, pcov = curve_fit(lambda x, A: np.log( A*x**(-1+np.log(xi)/np.log(B)) ), dists[inds],np.log(vals[inds]),p0=[2*a])
+    ax[2].plot(dists,popt[0] * dists**(-1+np.log(xi)/np.log(B)),'-',lw=3,alpha=.5,label=r'$%4.2f|\Delta i|^{\mathrm{log}\xi/\mathrm{log}B-1}$' % (popt[0]))
+    ax[2].legend()
+
+    ax[2].set_title(r"jump distribution (pmf)")
+    ax[2].set_xlabel(r"jump distance $|\Delta i|$")
+    ax[2].set_ylabel(r"probability")
+
 
 
 
@@ -195,7 +221,9 @@ if __name__ == "__main__":
     print(popt)
     fit_res = np.exp(func(t,*popt))
     print(fit_res)
-    ax[0].plot(t,fit_res,'r')
-    ax[0].plot(t,fit_res[-1] + (fit_res[0]-fit_res[-1]) * np.exp(-t*lambda_2),'--')
+    ax[0].plot(t,fit_res,'r',label=r'exp. fit for $t\times r>3$')
+    ax[0].plot(t,fit_res[-1] + (fit_res[0]-fit_res[-1]) * np.exp(-t*lambda_2),'--',label=r'$\mathrm{exp}(-\lambda_2rt)$')
+
+    ax[0].legend()
 
     pl.show()
