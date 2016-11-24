@@ -150,7 +150,7 @@ def step_histogram(data,**kwargs):
 
 def cut_histogram(data,bins,**kwargs):
 
-    assert np.std(bins[1:]-bins[:-1]) > 0.
+    assert np.std(bins[1:]-bins[:-1]) == 0.
     
     db = bins[1]-bins[0]
     steps, bins = np.histogram(data,bins=bins,**kwargs)
