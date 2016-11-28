@@ -49,8 +49,10 @@ class ErgodicDiffusion():
 
 
 
+    def timestep(self,return_first_passage=False):
 
-    def timestep(self):
+        if return_first_passage:
+            is_first_passage = np.zeros((self.N_walker,),dtype=bool)
 
         # iterate over all walkers
         for walker in self.remaining_walkers:
@@ -67,7 +69,15 @@ class ErgodicDiffusion():
                 self.jump_distances.append( distance )
 
             self.current_nodes[walker] = neigh
+
+            if return_first_passage:
+                if neigh not in self.visited_nodes[walker]:
+                    is_first_passage[walker] = True
+
             self.visited_nodes[walker].add(neigh)
+
+        if return_first_passage:
+            return is_first_passage
 
     #def simulation(self,tmax):
 
@@ -99,6 +109,48 @@ class ErgodicDiffusion():
             return trajectories
         else:
             return trajectories[:,-1]
+
+
+
+    def simulate_for_MFPT_and_coverage_time(self):
+
+        self.N_walker = self.N_nodes
+        self.initial_nodes = np.arange(self.N_nodes)
+        self.rewind()
+
+        self.MFPT = np.zeros((self.N_nodes,self.N_nodes))
+        self.coverage_times = np.zeros((self.N_walker,),dtype=int)
+
+        t = 0
+        nmax = self.N_nodes
+        while len(self.remaining_walkers)>0:
+
+            t += 1
+            is_first_passage = self.timestep(return_first_passage=True)
+
+            finished_walkers = []
+            for walker in self.remaining_walkers:
+                visited = len(self.visited_nodes[walker])
+
+                if visited == nmax:
+                    finished_walkers.append(walker)
+                    self.coverage_times[walker] = t
+
+                if is_first_passage[walker]:
+                    self.MFPT[self.initial_nodes[walker],self.current_nodes[walker]] += t
+
+            self.remaining_walkers -= set(finished_walkers)
+
+        self.MFPT /= 2.
+
+        return self.MFPT, self.coverage_times
+
+    def get_mean_MFPT(self):
+        if hasattr(self,"MFPT"):
+            return self.MFPT.sum(axis=0).sum() / (self.N_nodes*(self.N_nodes-1.))
+        else:
+            raise ValueError("MFPT not computed yet.")
+
 
     def simulate_till_max_visited_nodes(self,nmax,snapshots_at=[]):
 
@@ -183,7 +235,8 @@ if __name__ == "__main__":
     L = 3
     N = B**L
     k = 10
-    xi = 8
+    xi = 0.2
+
     p_ER = float(k)/(N-1)
     #G = nx.fast_gnp_random_graph(N,p_ER)
 
@@ -205,9 +258,9 @@ if __name__ == "__main__":
 
     diff.rewind()
 
-    snapshot_times = [ 500, 1000, 2000, 4000 ]
+    snapshot_times = [ 250, 500, 1000, 2000 ]
 
-    arrival_times,snapshots = diff.simulate_till_max_visited_nodes(diff.N_nodes,snapshot_times)
+    arrival_times,snapshots = diff.simulate_till_max_visited_nodes(int(0.95*N),snapshot_times)
 
     data, bins = step_histogram(arrival_times,bins=np.arange(42)*500)
 
