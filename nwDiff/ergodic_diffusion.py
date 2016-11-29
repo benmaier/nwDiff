@@ -45,7 +45,7 @@ class ErgodicDiffusion():
 
         self.remaining_walkers = set(range(self.N_walker))
 
-        self.current_nodes = self.initial_nodes
+        self.current_nodes = [ i for i in self.initial_nodes ]
 
 
 
@@ -141,13 +141,18 @@ class ErgodicDiffusion():
 
             self.remaining_walkers -= set(finished_walkers)
 
-        self.MFPT /= 2.
+        # this is not necessary
+        #self.MFPT /= 2.
 
         return self.MFPT, self.coverage_times
 
     def get_mean_MFPT(self):
         if hasattr(self,"MFPT"):
             return self.MFPT.sum(axis=0).sum() / (self.N_nodes*(self.N_nodes-1.))
+            #mfpt = self.MFPT.flatten()
+            #nnz = np.nonzero(mfpt)[0]
+            #mfpt = mfpt[nnz]
+            #return mfpt.mean()
         else:
             raise ValueError("MFPT not computed yet.")
 
