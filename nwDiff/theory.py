@@ -46,8 +46,13 @@ def estimate_upper_bound_P_all_nodes(rates,eps=1e-10):
             t_exponent += 1
     return t_exponent
 
-def get_mean_coverage_time_from_one_integral(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
-    rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,structural_degree_exponent=1.,upper_bound=np.inf):
+    if rates is None and degrees is not None:
+        rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    elif rates is None and degrees is None:
+        raise ValueError('Have to get either degrees or rates.')
+        
+
     N = len(rates)
 
     #result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, np.inf, args=(rates,),limit=10000)[0]
