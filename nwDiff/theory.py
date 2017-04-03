@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import quad
+from scipy.integrate import romberg
 
 def P(t,rates,starting_node):
     #results_per_node = (1.0-np.exp(-rates*t))
@@ -20,24 +21,38 @@ def get_gmfpt_per_target(degrees,structural_degree_exponent=1.):
     return N*k/degrees**structural_degree_exponent * 1./(1.-1./k)
     
 
-def mean_coverage_time_starting_at(rates,starting_node):
-    result = quad(lambda t,r,s: 1.0-P(t,r,s), 0, np.inf, args=(rates,starting_node))[0]
+def mean_coverage_time_starting_at(rates,starting_node,upper_bound=np.inf):
+    result = quad(lambda t,r,s: 1.0-P(t,r,s), 0, upper_bound, args=(rates,starting_node),limit=10000)[0]
     return result
 
-def get_mean_coverage_time(degrees,structural_degree_exponent=1.):
+def get_mean_coverage_time(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
 
     rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
 
     T = np.zeros_like(rates)
     for starting_node in xrange(len(degrees)):
-        T[starting_node] = mean_coverage_time_starting_at(rates,starting_node)
+        T[starting_node] = mean_coverage_time_starting_at(rates,starting_node,upper_bound)
 
     return T.mean()
 
-def get_mean_coverage_time_from_one_integral(degrees,structural_degree_exponent=1.):
+def estimate_upper_bound_P_all_nodes(rates,eps=1e-10):
+    t_exponent = 0
+
+    while True:
+        this_P = P_all_nodes(10**t_exponent,rates)
+        if 1.0-this_P<eps:
+            break
+        else:
+            t_exponent += 1
+    return t_exponent
+
+def get_mean_coverage_time_from_one_integral(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
     rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
     N = len(rates)
-    result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0, np.inf, args=(rates,))[0]
+
+    #result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, np.inf, args=(rates,),limit=10000)[0]
+    upper_bound = 10**estimate_upper_bound_P_all_nodes(rates)
+    result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, upper_bound, args=(rates,))[0]
     return result
     
 
