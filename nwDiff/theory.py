@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import quad
 from scipy.integrate import romberg
+from networkprops import networkprops as nprops
 
 def P(t,rates,starting_node):
     #results_per_node = (1.0-np.exp(-rates*t))
@@ -44,23 +45,64 @@ def estimate_upper_bound_P_all_nodes(rates,eps=1e-10):
             break
         else:
             t_exponent += 1
-    return t_exponent
+    return 10.0**t_exponent
 
-def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,structural_degree_exponent=1.,upper_bound=np.inf):
-    if rates is None and degrees is not None:
+def estimate_lower_bound_P_all_nodes(rates,eps=1e-10):
+    t_exponent = 0
+
+    while True:
+        this_P = P_all_nodes(10**t_exponent,rates)
+        if this_P < 1.0-eps:
+            break
+        else:
+            t_exponent += 1
+    return 10.0**(t_exponent - 1)
+
+def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
+    if rates is None and degrees is not None and G is None:
         rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    if G is not None and degrees is None and rates is None:
+        rates = estimate_rates_from_structure(G)
     elif rates is None and degrees is None:
-        raise ValueError('Have to get either degrees or rates.')
+        raise ValueError('Have to get either degrees, rates or networkx graph-object')
         
 
     N = len(rates)
 
     #result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, np.inf, args=(rates,),limit=10000)[0]
-    upper_bound = 10**estimate_upper_bound_P_all_nodes(rates)
-    result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, upper_bound, args=(rates,))[0]
+    upper_bound = estimate_upper_bound_P_all_nodes(rates)
+    lower_bound = estimate_lower_bound_P_all_nodes(rates)
+    result = quad(lambda t,r: 1.0-P_all_nodes(t,r), lower_bound, upper_bound, args=(rates,))[0]
     return result
-    
 
+def estimate_rates_from_structure(G):
+    props = nprops(G)
+    mfpts = props.get_mean_first_passage_times_for_all_targets_eigenvalue_method()
+    rates = 1.0/mfpts
+    return rates
+
+def get_mean_coverage_time_analytical(degrees=None,rates=None,structural_degree_exponent=1.):
+    """ DON'T USE! NOT FEASIBLE """
+
+    if rates is None and degrees is not None:
+        rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    elif rates is None and degrees is None:
+        raise ValueError('Have to get either degrees or rates.')
+
+    N = len(rates)
+        
+    from itertools import chain, combinations
+
+    def powerset(iterable):
+        "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+        s = list(iterable)
+        return chain.from_iterable(combinations(s, r) for r in range(1,len(s)+1))
+
+    coverage_time = 0.
+    for subset in powerset(range(N)):
+        coverage_time += (-1.0)**(len(subset)+1) * rates[np.array(subset)].sum()**(-1.)
+
+    return coverage_time
 
 if __name__=="__main__":
     import cNetworkDiffusion as diff
