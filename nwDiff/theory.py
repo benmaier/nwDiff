@@ -52,7 +52,7 @@ def estimate_lower_bound_P_all_nodes(rates,eps=1e-10):
 
     while True:
         this_P = P_all_nodes(10**t_exponent,rates)
-        if this_P < 1.0-eps:
+        if this_P > eps:
             break
         else:
             t_exponent += 1
@@ -72,8 +72,28 @@ def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,G=None,stru
     #result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, np.inf, args=(rates,),limit=10000)[0]
     upper_bound = estimate_upper_bound_P_all_nodes(rates)
     lower_bound = estimate_lower_bound_P_all_nodes(rates)
-    result = quad(lambda t,r: 1.0-P_all_nodes(t,r), lower_bound, upper_bound, args=(rates,))[0]
+    result = lower_bound + quad(lambda t,r: 1.0-P_all_nodes(t,r), lower_bound, upper_bound, args=(rates,))[0]
     return result
+
+def get_mean_coverage_time_for_single_GMFPT(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
+    if rates is None and degrees is not None and G is None:
+        rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    if G is not None and degrees is None and rates is None:
+        rates = estimate_rates_from_structure(G)
+    elif rates is None and degrees is None:
+        raise ValueError('Have to get either degrees, rates or networkx graph-object')
+
+    taus = 1./rates
+    mean_tau = np.mean(tau)
+
+    N = len(rates)
+
+    from numpy import euler_gamma
+    from scipy.special import polygamma as psi
+    
+    return mean_tau * (euler_gamma * psi(N, 0))
+
+        
 
 def estimate_rates_from_structure(G):
     props = nprops(G)
