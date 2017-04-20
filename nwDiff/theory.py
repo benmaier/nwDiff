@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.integrate import romberg
 from networkprops import networkprops as nprops
+from scipy.special import polygamma as psi
 
 def P(t,rates,starting_node):
     #results_per_node = (1.0-np.exp(-rates*t))
@@ -84,14 +85,12 @@ def get_mean_coverage_time_for_single_GMFPT(degrees=None,rates=None,G=None,struc
         raise ValueError('Have to get either degrees, rates or networkx graph-object')
 
     taus = 1./rates
-    mean_tau = np.mean(tau)
+    mean_tau = np.mean(taus)
 
     N = len(rates)
 
-    from numpy import euler_gamma
-    from scipy.special import polygamma as psi
     
-    return mean_tau * (euler_gamma * psi(N, 0))
+    return mean_tau * (np.euler_gamma + psi(0, N))
 
         
 
