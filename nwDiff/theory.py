@@ -23,17 +23,17 @@ def get_gmfpt_per_target(degrees,structural_degree_exponent=1.):
     return N*k/degrees**structural_degree_exponent * 1./(1.-1./k)
     
 
-def mean_coverage_time_starting_at(rates,starting_node,upper_bound=np.inf):
+def mean_cover_time_starting_at(rates,starting_node,upper_bound=np.inf):
     result = quad(lambda t,r,s: 1.0-P(t,r,s), 0, upper_bound, args=(rates,starting_node),limit=10000)[0]
     return result
 
-def get_mean_coverage_time(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
+def get_mean_cover_time(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
 
     rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
 
     T = np.zeros_like(rates)
     for starting_node in xrange(len(degrees)):
-        T[starting_node] = mean_coverage_time_starting_at(rates,starting_node,upper_bound)
+        T[starting_node] = mean_cover_time_starting_at(rates,starting_node,upper_bound)
 
     return T.mean()
 
@@ -59,7 +59,7 @@ def estimate_lower_bound_P_all_nodes(rates,eps=1e-10):
             t_exponent += 1
     return 10.0**(t_exponent - 1)
 
-def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
+def get_mean_cover_time_from_one_integral(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
     if rates is None and degrees is not None and G is None:
         rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
     if G is not None and degrees is None and rates is None:
@@ -76,7 +76,7 @@ def get_mean_coverage_time_from_one_integral(degrees=None,rates=None,G=None,stru
     result = lower_bound + quad(lambda t,r: 1.0-P_all_nodes(t,r), lower_bound, upper_bound, args=(rates,))[0]
     return result
 
-def get_mean_coverage_time_for_single_GMFPT(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
+def get_mean_cover_time_for_single_GMFPT(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
     if rates is None and degrees is not None and G is None:
         rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
     if G is not None and degrees is None and rates is None:
@@ -100,7 +100,7 @@ def estimate_rates_from_structure(G):
     rates = 1.0/mfpts
     return rates
 
-def get_mean_coverage_time_analytical(degrees=None,rates=None,structural_degree_exponent=1.):
+def get_mean_cover_time_analytical(degrees=None,rates=None,structural_degree_exponent=1.):
     """ DON'T USE! NOT FEASIBLE """
 
     if rates is None and degrees is not None:
@@ -117,11 +117,11 @@ def get_mean_coverage_time_analytical(degrees=None,rates=None,structural_degree_
         s = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(1,len(s)+1))
 
-    coverage_time = 0.
+    cover_time = 0.
     for subset in powerset(range(N)):
-        coverage_time += (-1.0)**(len(subset)+1) * rates[np.array(subset)].sum()**(-1.)
+        cover_time += (-1.0)**(len(subset)+1) * rates[np.array(subset)].sum()**(-1.)
 
-    return coverage_time
+    return cover_time
 
 if __name__=="__main__":
     import cNetworkDiffusion as diff
@@ -158,11 +158,11 @@ if __name__=="__main__":
             edges = G.edges()
             degrees = np.array(G.degree().values())
 
-            mmfpt, coverage_time = diff.mmfpt_and_mean_coverage_time(N,edges,seed=seed+ik*N_meas+meas)
-            T_sim[ik,meas] = coverage_time
+            mmfpt, cover_time = diff.mmfpt_and_mean_cover_time(N,edges,seed=seed+ik*N_meas+meas)
+            T_sim[ik,meas] = cover_time
 
-            T_theory[ik,meas] = get_mean_coverage_time(degrees)
-            T_theory_2[ik,meas] = get_mean_coverage_time_from_one_integral(degrees)
+            T_theory[ik,meas] = get_mean_cover_time(degrees)
+            T_theory_2[ik,meas] = get_mean_cover_time_from_one_integral(degrees)
             ks_meas[ik,meas] = degrees.mean()
 
         print "k =", k
