@@ -3,6 +3,8 @@ from scipy.integrate import quad
 from scipy.integrate import romberg
 from networkprops import networkprops as nprops
 from scipy.special import polygamma as psi
+import scipy.sparse as sprs
+from scipy.sparse.linalg import inv as sprs_inv
 
 def P(t,rates,starting_node):
     #results_per_node = (1.0-np.exp(-rates*t))
@@ -21,7 +23,88 @@ def get_gmfpt_per_target(degrees,structural_degree_exponent=1.):
     k = degrees.mean()
     N = len(degrees)
     return N*k/degrees**structural_degree_exponent * 1./(1.-1./k)
-    
+
+def get_gmfpt_per_target_estimated_by_neighborhood_second_neighbors(G,target):
+
+    k_mean = np.mean([ float(d[1]) for d in G.degree() ])
+    N = float(G.number_of_nodes())
+
+    # find first and unique second neighbors
+    n = target
+    first_neighs = set(G.neighbors(n))
+    first_neighs.add(n)
+    second_neighs = set()
+    for neigh in first_neighs:
+        second_neighs.update(set(G.neighbors(neigh)))
+    second_neighs = list(second_neighs - first_neighs)
+    first_neighs.remove(n)
+    first_neighs = list(first_neighs)
+
+    k = np.array( [ G.degree(u) for u in first_neighs ] +\
+                  [ G.degree(v) for v in second_neighs ],
+                dtype=float)
+
+    remap = { node: i for i,node in enumerate(first_neighs+second_neighs) }
+    a = np.concatenate(( 
+                        np.ones_like(first_neighs),
+                        np.zeros_like(second_neighs),
+                       )
+                      )
+
+    A_2 = sprs.lil_matrix((len(k),len(k)))
+    for u in first_neighs:
+        for v in G.neighbors(u):
+            if v != target:
+                A_2[ remap[u], remap[v] ] = 1.
+                A_2[ remap[v], remap[u] ] = 1.
+    A_2 = A_2.tocsc()
+    D_2 = sprs.diags(k)
+    L_2_inv = sprs_inv((D_2 - A_2).tocsc())
+        
+    ones = np.ones_like(k)
+    b = np.zeros_like(k)
+    k_cluster = A_2.dot(ones).flatten()
+
+    nf = len(first_neighs)
+    b[nf:] = (k[nf:] - k_cluster[nf:]) / N / k_mean
+
+    beta_target = a.dot(L_2_inv.dot(b))
+
+    return 1./beta_target
+
+
+def get_gmfpt_per_target_estimated_by_neighborhood_first_neighbors(G,target):
+
+    k_mean = np.mean([ float(d[1]) for d in G.degree() ])
+    N = float(G.number_of_nodes())
+
+    # find first and unique second neighbors
+    n = target
+    first_neighs = list(G.neighbors(n))
+
+    k = np.array( [ G.degree(u) for u in first_neighs ], dtype=float)
+
+    remap = { node: i for i,node in enumerate(first_neighs) }
+    a = np.ones_like(k)
+
+    A_2 = sprs.lil_matrix((len(k),len(k)))
+    for u in first_neighs:
+        for v in G.neighbors(u):
+            if v != target and v in first_neighs:
+                A_2[ remap[u], remap[v] ] = 1.
+                A_2[ remap[v], remap[u] ] = 1.
+    A_2 = A_2.tocsc()
+    D_2 = sprs.diags(k)
+    L_2_inv = sprs_inv((D_2 - A_2).tocsc())
+        
+    ones = np.ones_like(k)
+    k_cluster = A_2.dot(ones).flatten()
+
+    b = (k - k_cluster - 1.) / N / k_mean
+
+    beta_target = a.dot(L_2_inv.dot(b))
+
+    return 1./beta_target
 
 def mean_cover_time_starting_at(rates,starting_node,upper_bound=np.inf):
     result = quad(lambda t,r,s: 1.0-P(t,r,s), 0, upper_bound, args=(rates,starting_node),limit=10000)[0]
