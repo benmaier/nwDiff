@@ -110,15 +110,32 @@ def mean_cover_time_starting_at(rates,starting_node,upper_bound=np.inf):
     result = quad(lambda t,r,s: 1.0-P(t,r,s), 0, upper_bound, args=(rates,starting_node),limit=10000)[0]
     return result
 
-def get_mean_cover_time(degrees,structural_degree_exponent=1.,upper_bound=np.inf):
+def get_mean_cover_time(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
 
-    rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    if rates is None and degrees is not None and G is None:
+        rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
+    if G is not None and degrees is None and rates is None:
+        rates = estimate_rates_from_structure(G)
+    elif rates is None and degrees is None:
+        raise ValueError('Have to get either degrees, rates or networkx graph-object')
 
     T = np.zeros_like(rates)
-    for starting_node in xrange(len(degrees)):
+    for starting_node in xrange(len(rates)):
+        upper_bound = estimate_upper_bound_P(rates,starting_node)
         T[starting_node] = mean_cover_time_starting_at(rates,starting_node,upper_bound)
 
     return T.mean()
+
+def estimate_upper_bound_P(rates,starting_node,eps=1e-10):
+    t_exponent = 0
+
+    while True:
+        this_P = P(10**t_exponent,rates,starting_node)
+        if 1.0-this_P<eps:
+            break
+        else:
+            t_exponent += 1
+    return 10.0**t_exponent
 
 def estimate_upper_bound_P_all_nodes(rates,eps=1e-10):
     t_exponent = 0
