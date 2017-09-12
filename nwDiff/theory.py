@@ -159,7 +159,7 @@ def estimate_lower_bound_P_all_nodes(rates,eps=1e-10):
             t_exponent += 1
     return 10.0**(t_exponent - 1)
 
-def get_mean_cover_time_from_one_integral(degrees=None,rates=None,G=None,structural_degree_exponent=1.,upper_bound=np.inf):
+def get_mean_cover_time_from_one_integral(degrees=None,rates=None,G=None,structural_degree_exponent=1.,lower_bound=None,upper_bound=np.inf):
     if rates is None and degrees is not None and G is None:
         rates = 1.0/get_gmfpt_per_target(degrees,structural_degree_exponent=1.)
     if G is not None and degrees is None and rates is None:
@@ -171,8 +171,10 @@ def get_mean_cover_time_from_one_integral(degrees=None,rates=None,G=None,structu
     N = len(rates)
 
     #result = quad(lambda t,r: 1.0-P_all_nodes(t,r), 0.0, np.inf, args=(rates,),limit=10000)[0]
-    upper_bound = estimate_upper_bound_P_all_nodes(rates)
-    lower_bound = estimate_lower_bound_P_all_nodes(rates)
+    if upper_bound == np.inf:
+        upper_bound = estimate_upper_bound_P_all_nodes(rates)
+    if lower_bound is None:
+        lower_bound = estimate_lower_bound_P_all_nodes(rates)
     result = lower_bound + quad(lambda t,r: 1.0-P_all_nodes(t,r), lower_bound, upper_bound, args=(rates,))[0]
     return result
 
