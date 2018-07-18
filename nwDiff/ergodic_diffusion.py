@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 from collections import Counter
 izip = zip
@@ -17,13 +17,13 @@ class ErgodicDiffusion():
         self.N_nodes = self.G.number_of_nodes()
         self.m = self.G.number_of_edges()
 
-        self.k = np.array( [ self.G.degree(node) for node in xrange(self.N_nodes) ],dtype=np.float64 )
+        self.k = np.array( [ self.G.degree(node) for node in range(self.N_nodes) ],dtype=np.float64 )
         self.p_expected = 0.5 * self.k / self.m
 
 
         if initial_seeds is None:
             initial_node = random.randint(self.N_walker)
-            self.initial_nodes = [ initial_node for walker in xrange(self.N_walker) ]
+            self.initial_nodes = [ initial_node for walker in range(self.N_walker) ]
         elif initial_seeds == "random":
             self.initial_nodes = random.randint(self.N_nodes,size=(self.N_walker,))
         elif hasattr(initial_seeds,"__len__"):
@@ -36,8 +36,8 @@ class ErgodicDiffusion():
 
     def rewind(self):
 
-        self.visited_nodes = [ set() for walker in xrange(self.N_walker) ]
-        for walker in xrange(self.N_walker):
+        self.visited_nodes = [ set() for walker in range(self.N_walker) ]
+        for walker in range(self.N_walker):
             self.visited_nodes[walker].add(self.initial_nodes[walker])
 
         if self.record_jump_distance:
@@ -58,7 +58,7 @@ class ErgodicDiffusion():
         for walker in self.remaining_walkers:
             node = self.current_nodes[walker]
 
-            neighbors = self.G.neighbors(node)
+            neighbors = list(self.G.neighbors(node))
             k = len(neighbors)
             neigh = neighbors[random.randint(k)]
 
@@ -93,12 +93,12 @@ class ErgodicDiffusion():
 
         nmax = self.N_nodes
 
-        for t in xrange(tmax):
+        for t in range(tmax):
 
             self.timestep()
 
             finished_walkers = []
-            for walker in xrange(self.N_walker):
+            for walker in range(self.N_walker):
                 trajectories[walker,t] = len(self.visited_nodes[walker])
                 if trajectories[walker,t] == nmax:
                     finished_walkers.append(walker)
@@ -177,7 +177,7 @@ class ErgodicDiffusion():
             self.remaining_walkers -= set(finished_walkers)
 
             if t in snapshots_at:
-                snapshots.append( np.array([len(self.visited_nodes[walker]) for walker in xrange(self.N_walker) ],dtype=int) )
+                snapshots.append( np.array([len(self.visited_nodes[walker]) for walker in range(self.N_walker) ],dtype=int) )
 
             t += 1
 
@@ -258,7 +258,7 @@ if __name__ == "__main__":
 
     t_ = np.arange(tmax)
     
-    for walker in xrange(N_walker):
+    for walker in range(N_walker):
         ax[0].plot(t_,traj[walker,:],'b',alpha=0.1)
 
     diff.rewind()

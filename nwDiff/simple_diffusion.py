@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 from collections import Counter
 izip = zip
@@ -17,7 +17,7 @@ class SimpleDiffusion():
         self.N_nodes = self.G.number_of_nodes()
         self.m = self.G.number_of_edges()
 
-        self.k = np.array( [ self.G.degree(node) for node in xrange(self.N_nodes) ],dtype=np.float64 )
+        self.k = np.array( [ self.G.degree(node) for node in range(self.N_nodes) ],dtype=np.float64 )
         self.p_expected = 0.5 * self.k / self.m
 
         if initial_distribution is None:
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     std0 = std[0]
     std_eq = std[-1]
 
-    print(std0,std_eq)
+    print((std0,std_eq))
 
     #fig,ax = pl.subplots(2,2,figsize=(13,9))
     fig = pl.figure(figsize=(13,9))
@@ -195,8 +195,8 @@ if __name__ == "__main__":
     p = np.polyfit(np.log(dists[inds]),np.log(vals[inds]),1)
     mu = p[0]
     a = np.exp(p[1])
-    print("mu =",mu)
-    print("a =",a)
+    print(("mu =",mu))
+    print(("a =",a))
 
     #ax[2].plot(dists,a * dists**mu,'--',label='$%4.2f|\Delta i|^{%4.2f}$' % (a,mu))
     #ax[2].plot(dists,a * dists**-1,'--',label='$%4.2f|\Delta i|^{%4.2f}$' % (a,mu))
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     start_fit = 3
     popt, pcov = curve_fit(func, t[start_fit:], np.log(std[start_fit:]),p0=[std0-std_eq,lambda_2,std_eq])
     tau = 1./popt[1]
-    print(tau,1./lambda_2)
+    print((tau,1./lambda_2))
             
     print(popt)
     fit_res = np.exp(func(t,*popt))
