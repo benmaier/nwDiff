@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from collections import Counter
-from itertools import izip
+izip = zip
 
 import numpy as np
 from numpy import random

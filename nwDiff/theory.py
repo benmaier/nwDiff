@@ -1,4 +1,6 @@
+from __future__ import print_function
 import numpy as np
+izip = zip
 from scipy.integrate import quad
 from scipy.integrate import romberg
 from networkprops import networkprops as nprops
@@ -267,7 +269,7 @@ if __name__=="__main__":
             T_theory_2[ik,meas] = get_mean_cover_time_from_one_integral(degrees)
             ks_meas[ik,meas] = degrees.mean()
 
-        print "k =", k
+        print("k =", k)
 
     km = ks_meas.mean(axis=1)
     km_err = ks_meas.std(axis=1)/np.sqrt(N_meas-1)
