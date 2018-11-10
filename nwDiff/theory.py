@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import numpy as np
 izip = zip
 from scipy.integrate import quad
@@ -122,7 +122,7 @@ def get_mean_cover_time(degrees=None,rates=None,G=None,structural_degree_exponen
         raise ValueError('Have to get either degrees, rates or networkx graph-object')
 
     T = np.zeros_like(rates)
-    for starting_node in xrange(len(rates)):
+    for starting_node in range(len(rates)):
         upper_bound = estimate_upper_bound_P(rates,starting_node)
         T[starting_node] = mean_cover_time_starting_at(rates,starting_node,upper_bound)
 
@@ -222,7 +222,7 @@ def get_mean_cover_time_analytical(degrees=None,rates=None,structural_degree_exp
         return chain.from_iterable(combinations(s, r) for r in range(1,len(s)+1))
 
     cover_time = 0.
-    for subset in powerset(range(N)):
+    for subset in powerset(list(range(N))):
         cover_time += (-1.0)**(len(subset)+1) * rates[np.array(subset)].sum()**(-1.)
 
     return cover_time
@@ -260,7 +260,7 @@ if __name__=="__main__":
             G = nprops(G,use_giant_component=True).G
             N = G.number_of_nodes()
             edges = G.edges()
-            degrees = np.array(G.degree().values())
+            degrees = np.array(list(G.degree().values()))
 
             mmfpt, cover_time = diff.mmfpt_and_mean_cover_time(N,edges,seed=seed+ik*N_meas+meas)
             T_sim[ik,meas] = cover_time
